@@ -1,0 +1,6 @@
+{
+  "appId": "com.hany.tictactoe",
+  "appName": "X O تيك تاك تو",
+  "webDir": "www",
+  "server": { "androidScheme": "https" }
+}
