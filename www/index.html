@@ -58,6 +58,7 @@
   button:active { transform: scale(.97); }
   .score { margin-top: 16px; font-size: 1rem; opacity: .9; }
   .mode { margin-bottom: 12px; }
+  #difficulty { display: none; margin-bottom: 12px; }
   select { padding: 6px 10px; border-radius: 6px; border: none; font-size: 1rem; }
 </style>
 </head>
@@ -70,11 +71,19 @@
       <option value="ai">لاعب ضد الكمبيوتر</option>
     </select>
   </div>
+  <div id="difficulty">
+    <label for="difficulty">الصعوبة: </label>
+    <select id="difficulty">
+      <option value="easy">سهل (عشوائي)</option>
+      <option value="medium">متوسط (نصف ذكي)</option>
+      <option value="hard">صعب (مستحيل)</option>
+    </select>
+  </div>
   <div class="status" id="status">دور X</div>
   <div class="board" id="board"></div>
   <div class="score" id="score">X: 0  |  O: 0  |  تعادل: 0</div>
   <div class="controls">
-    <button id="reset">إعادة الجولة</button>
+    <button id="reset"> إلعب جولة جديدة</button>
     <button id="resetAll">مسح النتائج</button>
   </div>
 
@@ -124,10 +133,16 @@ const boardEl = document.getElementById('board');
 const statusEl = document.getElementById('status');
 const scoreEl = document.getElementById('score');
 const modeSel = document.getElementById('mode');
+const difficultySel = document.getElementById('difficulty');
 let board = Array(9).fill(null);
 let current = 'X';
 let gameOver = false;
 let scores = { X:0, O:0, D:0 };
+let difficulty = 'hard';
+
+function updateDifficultyVisibility(){
+  difficultySel.parentElement.style.display = (modeSel.value === 'ai') ? 'block' : 'none';
+}
 
 const wins = [
   [0,1,2],[3,4,5],[6,7,8],
@@ -188,7 +203,28 @@ function highlight(line) {
 
 function aiMove() {
   if (gameOver) return;
-  // Minimax
+
+  if (difficulty === 'easy') {
+    // Easy: completely random move
+    const empties = [];
+    for (let i=0;i<9;i++) if (!board[i]) empties.push(i);
+    if (empties.length) move(empties[Math.floor(Math.random()*empties.length)]);
+    return;
+  }
+
+  if (difficulty === 'medium') {
+    // Medium: 50% random, 50% smart
+    const empties = [];
+    for (let i=0;i<9;i++) if (!board[i]) empties.push(i);
+    if (empties.length) {
+      if (Math.random() < 0.5) {
+        move(empties[Math.floor(Math.random()*empties.length)]);
+        return;
+      }
+    }
+  }
+
+  // Hard: Minimax (perfect play)
   let best = -Infinity, idx = -1;
   for (let i=0;i<9;i++){
     if (!board[i]){
@@ -236,6 +272,9 @@ document.getElementById('resetAll').addEventListener('click', () => {
   updateScore();
   document.getElementById('reset').click();
 });
+
+modeSel.addEventListener('change', updateDifficultyVisibility);
+updateDifficultyVisibility();
 
 render();
 </script>
