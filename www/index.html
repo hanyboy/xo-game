@@ -7,9 +7,12 @@
 <title>X O - تيك تاك تو</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+
   body {
     font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
-    background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+    background: linear-gradient(135deg, #0f2460, #1e3a8a, #3b82f6);
+    background-size: 300% 300%;
+    animation: bgShift 8s ease infinite;
     color: #fff;
     min-height: 100vh;
     display: flex;
@@ -17,131 +20,594 @@
     align-items: center;
     justify-content: center;
     padding: 16px;
+    overflow-x: hidden;
   }
-  h1 { font-size: 2.2rem; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,.3); }
-  .status { font-size: 1.2rem; margin-bottom: 20px; min-height: 1.5em; font-weight: 600; }
+  @keyframes bgShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* ── Floating particles in background ── */
+  .particle {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    animation: floatUp linear infinite;
+  }
+  @keyframes floatUp {
+    0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+    10%  { opacity: 0.3; }
+    90%  { opacity: 0.15; }
+    100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+  }
+
+  h1 {
+    font-size: 2.4rem;
+    margin-bottom: 8px;
+    text-shadow: 0 0 20px rgba(255,255,255,.4), 0 2px 4px rgba(0,0,0,.4);
+    animation: titlePulse 3s ease-in-out infinite;
+    letter-spacing: 2px;
+  }
+  @keyframes titlePulse {
+    0%,100% { text-shadow: 0 0 20px rgba(255,255,255,.3), 0 2px 4px rgba(0,0,0,.4); }
+    50%     { text-shadow: 0 0 35px rgba(255,255,255,.6), 0 2px 8px rgba(0,0,0,.4); }
+  }
+
+  /* ── Status with animated indicator ── */
+  .status {
+    font-size: 1.25rem;
+    margin-bottom: 20px;
+    min-height: 2em;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+  }
+  .status-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: #fbbf24;
+    box-shadow: 0 0 8px #fbbf24;
+    animation: dotBlink 1s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  .status-dot.o { background: #34d399; box-shadow: 0 0 8px #34d399; }
+  .status-dot.hide { opacity: 0; animation: none; }
+  @keyframes dotBlink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+  /* ── Board ── */
   .board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
     width: min(90vw, 360px);
     aspect-ratio: 1;
+    filter: drop-shadow(0 8px 24px rgba(0,0,0,.35));
   }
+
   .cell {
-    background: rgba(255,255,255,.15);
-    border: 2px solid rgba(255,255,255,.4);
-    border-radius: 12px;
+    background: rgba(255,255,255,.1);
+    border: 2px solid rgba(255,255,255,.25);
+    border-radius: 16px;
     font-size: 3rem;
     font-weight: 700;
-    color: #fff;
+    color: transparent;
     cursor: pointer;
-    transition: background .15s, transform .1s;
+    transition: background .2s, border-color .2s, transform .15s, box-shadow .2s;
     display: flex; align-items: center; justify-content: center;
     user-select: none;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(4px);
   }
-  .cell:hover { background: rgba(255,255,255,.25); }
-  .cell:active { transform: scale(.95); }
-  .cell.x { color: #fbbf24; }
-  .cell.o { color: #34d399; }
-  .cell.win { background: rgba(255,255,255,.4); animation: winPulse .6s ease 2; }
-  @keyframes winPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
-  .cell.pop { animation: pop .3s ease; }
-  @keyframes pop { 0%{transform:scale(.5)} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
-  .board.shake { animation: shake .4s; }
-  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+  .cell::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,0));
+    pointer-events: none;
+  }
+  .cell:hover:not(.x):not(.o) {
+    background: rgba(255,255,255,.22);
+    border-color: rgba(255,255,255,.5);
+    transform: scale(1.04);
+    box-shadow: 0 4px 20px rgba(0,0,0,.3);
+  }
+  .cell:active { transform: scale(.93); }
+
+  /* X cell */
+  .cell.x {
+    color: #fbbf24;
+    background: rgba(251,191,36,.12);
+    border-color: rgba(251,191,36,.5);
+    box-shadow: 0 0 18px rgba(251,191,36,.25), inset 0 0 12px rgba(251,191,36,.1);
+    text-shadow: 0 0 12px rgba(251,191,36,.7);
+  }
+  /* O cell */
+  .cell.o {
+    color: #34d399;
+    background: rgba(52,211,153,.12);
+    border-color: rgba(52,211,153,.5);
+    box-shadow: 0 0 18px rgba(52,211,153,.25), inset 0 0 12px rgba(52,211,153,.1);
+    text-shadow: 0 0 12px rgba(52,211,153,.7);
+  }
+
+  /* Win highlight with pulsing glow */
+  .cell.win {
+    animation: winPulse .55s ease 3;
+  }
+  .cell.win.x {
+    background: rgba(251,191,36,.35);
+    border-color: #fbbf24;
+    box-shadow: 0 0 32px rgba(251,191,36,.7), inset 0 0 20px rgba(251,191,36,.2);
+  }
+  .cell.win.o {
+    background: rgba(52,211,153,.35);
+    border-color: #34d399;
+    box-shadow: 0 0 32px rgba(52,211,153,.7), inset 0 0 20px rgba(52,211,153,.2);
+  }
+  @keyframes winPulse {
+    0%,100% { transform: scale(1); }
+    40%     { transform: scale(1.14); }
+    70%     { transform: scale(0.96); }
+  }
+
+  /* Pop-in animation when placing a piece */
+  .cell.pop { animation: pop .32s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes pop {
+    0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+    70%  { transform: scale(1.12) rotate(4deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+
+  /* Board shake on draw */
+  .board.shake { animation: shake .45s cubic-bezier(.36,.07,.19,.97); }
+  @keyframes shake {
+    0%,100% { transform: translateX(0) rotate(0); }
+    15%     { transform: translateX(-8px) rotate(-.5deg); }
+    35%     { transform: translateX(8px) rotate(.5deg); }
+    55%     { transform: translateX(-5px) rotate(-.3deg); }
+    75%     { transform: translateX(5px) rotate(.3deg); }
+  }
+
+  /* Board flash-in on new round */
+  .board.newround { animation: boardIn .4s ease; }
+  @keyframes boardIn {
+    0%   { opacity: 0; transform: scale(.9) rotateX(10deg); }
+    100% { opacity: 1; transform: scale(1) rotateX(0deg); }
+  }
+
+  /* ── Controls ── */
   .controls { margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
   button {
-    background: #fff; color: #1e3a8a; border: none; border-radius: 8px;
-    padding: 10px 20px; font-size: 1rem; font-weight: 600; cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0,0,0,.2);
+    background: rgba(255,255,255,.92);
+    color: #1e3a8a;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 22px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,.25);
+    transition: transform .15s, box-shadow .15s, background .15s;
   }
-  button:active { transform: scale(.97); }
-  .score { margin-top: 16px; font-size: 1rem; opacity: .9; }
+  button:hover { background: #fff; box-shadow: 0 6px 20px rgba(0,0,0,.3); transform: translateY(-2px); }
+  button:active { transform: scale(.96) translateY(0); box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+
+  .score {
+    margin-top: 18px;
+    font-size: 1rem;
+    opacity: .9;
+    background: rgba(255,255,255,.1);
+    padding: 8px 20px;
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,.2);
+    letter-spacing: 1px;
+  }
   .mode { margin-bottom: 12px; }
-  #difficulty { display: none; margin-bottom: 12px; }
-  select { padding: 6px 10px; border-radius: 6px; border: none; font-size: 1rem; }
+  #difficultyContainer { display: none; margin-bottom: 12px; }
+  select {
+    padding: 7px 12px;
+    border-radius: 8px;
+    border: none;
+    font-size: 1rem;
+    background: rgba(255,255,255,.92);
+    color: #1e3a8a;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ── Confetti ── */
+  .confetti { position: fixed; pointer-events: none; z-index: 999; border-radius: 2px; }
+
+  /* ── Ripple on cell click ── */
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    transform: scale(0);
+    animation: rippleAnim .5s linear;
+    pointer-events: none;
+    z-index: 1;
+  }
+  @keyframes rippleAnim {
+    to { transform: scale(3); opacity: 0; }
+  }
+
+  /* ── Language toggle ── */
+  #langBtn {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    background: rgba(255,255,255,.18);
+    color: #fff;
+    border: 2px solid rgba(255,255,255,.45);
+    border-radius: 10px;
+    padding: 7px 16px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    box-shadow: 0 2px 10px rgba(0,0,0,.2);
+    transition: background .2s, transform .15s;
+    letter-spacing: 1px;
+  }
+  #langBtn:hover { background: rgba(255,255,255,.32); transform: scale(1.05); }
+  html[lang="en"] #langBtn { left: auto; right: 14px; }
+
+  /* ── Status slide-in ── */
+  .status.update { animation: statusSlide .3s ease; }
+  @keyframes statusSlide {
+    0% { transform: translateY(-8px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  /* ── Win overlay banner ── */
+  #winBanner {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,.45);
+    backdrop-filter: blur(3px);
+    animation: fadeIn .3s ease;
+  }
+  #winBanner.show { display: flex; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  #winBannerBox {
+    background: linear-gradient(135deg,rgba(30,58,138,.95),rgba(59,130,246,.95));
+    border: 2px solid rgba(255,255,255,.3);
+    border-radius: 24px;
+    padding: 36px 48px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    animation: bannerPop .4s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes bannerPop {
+    0% { transform: scale(.6) rotate(-5deg); opacity:0; }
+    100% { transform: scale(1) rotate(0deg); opacity:1; }
+  }
+  #winBannerEmoji { font-size: 4rem; display:block; margin-bottom: 12px; animation: spin 1s ease; }
+  @keyframes spin { 0%{transform:rotate(-30deg) scale(0)} 60%{transform:rotate(10deg) scale(1.2)} 100%{transform:rotate(0) scale(1)} }
+  #winBannerText { font-size: 1.8rem; font-weight: 800; margin-bottom: 20px; text-shadow: 0 2px 8px rgba(0,0,0,.3); }
+  #winBannerClose {
+    background: #fff; color: #1e3a8a; border: none; border-radius: 10px;
+    padding: 10px 28px; font-size: 1rem; font-weight: 700; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,.2);
+    transition: transform .15s;
+  }
+  #winBannerClose:hover { transform: scale(1.05); }
 </style>
 </head>
 <body>
-  <h1>❌⭕ تيك تاك تو</h1>
+
+  <!-- Background floating particles -->
+  <div id="particles"></div>
+
+  <!-- Win banner overlay -->
+  <div id="winBanner">
+    <div id="winBannerBox">
+      <span id="winBannerEmoji">🏆</span>
+      <div id="winBannerText"></div>
+      <button id="winBannerClose" data-i18n="nextBtn">التالي</button>
+    </div>
+  </div>
+
+  <button id="langBtn">EN</button>
+
+  <h1>❌⭕ <span data-i18n="title">تيك تاك تو</span></h1>
   <div class="mode">
-    <label for="mode">الوضع: </label>
+    <label for="mode"><span data-i18n="modeLabel">الوضع: </span></label>
     <select id="mode">
-      <option value="pvp">لاعب ضد لاعب</option>
-      <option value="ai">لاعب ضد الكمبيوتر</option>
+      <option value="pvp" data-i18n-opt="pvp">لاعب ضد لاعب</option>
+      <option value="ai"  data-i18n-opt="ai">لاعب ضد الكمبيوتر</option>
     </select>
   </div>
-  <div id="difficulty">
-    <label for="difficulty">الصعوبة: </label>
+  <div id="difficultyContainer">
+    <label for="difficulty"><span data-i18n="diffLabel">الصعوبة: </span></label>
     <select id="difficulty">
-      <option value="easy">سهل (عشوائي)</option>
-      <option value="medium">متوسط (نصف ذكي)</option>
-      <option value="hard">صعب (مستحيل)</option>
+      <option value="veryeasy" data-i18n-opt="veryeasy">سهل جداً (عشوائي 100%)</option>
+      <option value="easy"     data-i18n-opt="easy">سهل (عشوائي 80%)</option>
+      <option value="medium"   data-i18n-opt="medium">متوسط (50/50)</option>
+      <option value="hard"     data-i18n-opt="hard" selected>صعب (ذكي 80%)</option>
+      <option value="expert"   data-i18n-opt="expert">خبير (مستحيل)</option>
     </select>
   </div>
-  <div class="status" id="status">دور X</div>
+  <div class="status" id="status">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText"></span>
+  </div>
   <div class="board" id="board"></div>
-  <div class="score" id="score">X: 0  |  O: 0  |  تعادل: 0</div>
+  <div class="score" id="score"></div>
   <div class="controls">
-    <button id="reset">إلعب جولة جديدة</button>
-    <button id="resetAll">مسح النتائج</button>
+    <button id="reset"    data-i18n="resetBtn">إعادة الجولة</button>
+    <button id="resetAll" data-i18n="resetAllBtn">مسح النتائج</button>
   </div>
 
 <script>
-// Web Audio API sounds (no external files)
+/* ═══════════════════════════════════════════════════════
+   i18n
+═══════════════════════════════════════════════════════ */
+const i18n = {
+  ar: {
+    title:      'تيك تاك تو',
+    modeLabel:  'الوضع: ',
+    pvp:        'لاعب ضد لاعب',
+    ai:         'لاعب ضد الكمبيوتر',
+    diffLabel:  'الصعوبة: ',
+    veryeasy:   'سهل جداً (عشوائي 100%)',
+    easy:       'سهل (عشوائي 80%)',
+    medium:     'متوسط (50/50)',
+    hard:       'صعب (ذكي 80%)',
+    expert:     'خبير (مستحيل)',
+    turn:       (p) => `دور ${p}`,
+    win:        (p) => `🏆 فاز ${p}!`,
+    draw:       '🤝 تعادل!',
+    score:      (x,o,d) => `X: ${x}  |  O: ${o}  |  تعادل: ${d}`,
+    resetBtn:   'إعادة الجولة',
+    resetAllBtn:'مسح النتائج',
+    nextBtn:    'التالي ▶',
+    bannerWin:  (p) => `فاز ${p}! 🎉`,
+    bannerDraw: '🤝 تعادل!',
+    langSwitch: 'EN',
+    htmlLang:   'ar',
+    dir:        'rtl',
+  },
+  en: {
+    title:      'Tic Tac Toe',
+    modeLabel:  'Mode: ',
+    pvp:        'Player vs Player',
+    ai:         'Player vs Computer',
+    diffLabel:  'Difficulty: ',
+    veryeasy:   'Very Easy (100% random)',
+    easy:       'Easy (80% random)',
+    medium:     'Medium (50/50)',
+    hard:       'Hard (80% smart)',
+    expert:     'Expert (Unbeatable)',
+    turn:       (p) => `${p}'s Turn`,
+    win:        (p) => `🏆 ${p} Wins!`,
+    draw:       "🤝 It's a Draw!",
+    score:      (x,o,d) => `X: ${x}  |  O: ${o}  |  Draws: ${d}`,
+    resetBtn:   'New Round',
+    resetAllBtn:'Reset Scores',
+    nextBtn:    '▶ Next',
+    bannerWin:  (p) => `${p} Wins! 🎉`,
+    bannerDraw: "🤝 It's a Draw!",
+    langSwitch: 'عربي',
+    htmlLang:   'en',
+    dir:        'ltr',
+  }
+};
+let lang = 'ar';
+const t = () => i18n[lang];
+
+function setStatus(text, player) {
+  const statusEl = document.getElementById('status');
+  const dot = document.getElementById('statusDot');
+  const textEl = document.getElementById('statusText');
+  textEl.textContent = text;
+  dot.className = 'status-dot' + (player ? ' '+player.toLowerCase() : '') + (!player ? ' hide' : '');
+  statusEl.classList.remove('update');
+  void statusEl.offsetWidth; // reflow to restart animation
+  statusEl.classList.add('update');
+}
+
+function applyLang() {
+  const strings = t();
+  document.documentElement.lang = strings.htmlLang;
+  document.documentElement.dir  = strings.dir;
+  document.title = `X O - ${strings.title}`;
+  document.getElementById('langBtn').textContent = strings.langSwitch;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (strings[key] !== undefined) el.textContent = strings[key];
+  });
+  document.querySelectorAll('[data-i18n-opt]').forEach(el => {
+    const key = el.getAttribute('data-i18n-opt');
+    if (strings[key] !== undefined) el.textContent = strings[key];
+  });
+  if (!gameOver) {
+    setStatus(strings.turn(current), current);
+  } else {
+    const res = checkWinner(board);
+    if (res) setStatus(res.player === 'D' ? strings.draw : strings.win(res.player), null);
+  }
+  updateScore();
+}
+
+document.getElementById('langBtn').addEventListener('click', () => {
+  lang = lang === 'ar' ? 'en' : 'ar';
+  applyLang();
+});
+
+/* ═══════════════════════════════════════════════════════
+   Background particles
+═══════════════════════════════════════════════════════ */
+(function spawnParticles() {
+  const container = document.getElementById('particles');
+  const colors = ['rgba(251,191,36,.4)','rgba(52,211,153,.4)','rgba(96,165,250,.4)','rgba(255,255,255,.3)'];
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 4 + Math.random() * 10;
+    p.style.cssText = `
+      width:${size}px; height:${size}px;
+      left:${Math.random()*100}vw;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration:${6+Math.random()*10}s;
+      animation-delay:${Math.random()*8}s;
+    `;
+    container.appendChild(p);
+  }
+})();
+
+/* ═══════════════════════════════════════════════════════
+   Audio  — richer Web Audio synthesis
+═══════════════════════════════════════════════════════ */
 let audioCtx = null;
-function getAudioCtx(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); return audioCtx; }
-function playTone(freq, dur, type='sine', vol=0.15){
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playNote(freq, dur, { type='sine', vol=0.15, attack=0.005, release=0.9 } = {}) {
   try {
-    const ctx = getAudioCtx();
-    const osc = ctx.createOscillator();
+    const ctx = getCtx();
+    const osc  = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = type;
     osc.frequency.value = freq;
-    gain.gain.setValueAtTime(vol, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + attack);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur * release);
     osc.connect(gain); gain.connect(ctx.destination);
     osc.start(); osc.stop(ctx.currentTime + dur);
-  } catch(e){}
+  } catch(e) {}
 }
-function soundClick(){ playTone(440, 0.08, 'square', 0.1); }
-function soundWin(){ playTone(523,0.12,'sine',0.18); setTimeout(()=>playTone(659,0.12,'sine',0.18),120); setTimeout(()=>playTone(784,0.18,'sine',0.18),240); }
-function soundDraw(){ playTone(300,0.2,'triangle',0.15); setTimeout(()=>playTone(250,0.2,'triangle',0.15),200); }
-function soundAi(){ playTone(330,0.1,'sine',0.1); }
-function confettiBurst(){
-  const colors = ['#fbbf24','#34d399','#60a5fa','#f472b6','#a78bfa'];
-  for(let k=0;k<40;k++){
+
+function soundClick() {
+  playNote(480, 0.09, { type:'triangle', vol:0.12 });
+  setTimeout(() => playNote(640, 0.07, { type:'sine', vol:0.07 }), 40);
+}
+
+function soundWin() {
+  // Rising fanfare
+  [[523,.14],[659,.14],[784,.14],[1047,.22]].forEach(([f,d], i) => {
+    setTimeout(() => playNote(f, d, { type:'sine', vol:0.2 }), i * 110);
+  });
+}
+
+function soundDraw() {
+  // Descending minor chord
+  [[400,.18],[320,.18],[260,.22]].forEach(([f,d], i) => {
+    setTimeout(() => playNote(f, d, { type:'triangle', vol:0.14 }), i * 130);
+  });
+}
+
+function soundAi() {
+  playNote(350, 0.08, { type:'sine', vol:0.08 });
+  setTimeout(() => playNote(420, 0.08, { type:'sine', vol:0.08 }), 60);
+}
+
+function soundButtonClick() {
+  playNote(600, 0.07, { type:'square', vol:0.07 });
+}
+
+/* ═══════════════════════════════════════════════════════
+   Confetti  — shapes + physics
+═══════════════════════════════════════════════════════ */
+function confettiBurst() {
+  const colors = ['#fbbf24','#34d399','#60a5fa','#f472b6','#a78bfa','#fb923c','#fff'];
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight * 0.42;
+  for (let k = 0; k < 70; k++) {
     const el = document.createElement('div');
-    el.className='confetti';
-    el.style.left = (window.innerWidth/2 + (Math.random()-0.5)*200)+'px';
-    el.style.top = (window.innerHeight/2)+'px';
-    el.style.width = (6+Math.random()*6)+'px';
-    el.style.height = el.style.width;
-    el.style.background = colors[Math.floor(Math.random()*colors.length)];
-    el.style.borderRadius = Math.random()>.5?'50%':'2px';
+    el.className = 'confetti';
+    const size = 5 + Math.random() * 9;
+    const isCircle = Math.random() > 0.4;
+    el.style.cssText = `
+      left:${cx + (Math.random()-0.5)*60}px;
+      top:${cy}px;
+      width:${size}px;
+      height:${isCircle ? size : size*0.45}px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      border-radius:${isCircle ? '50%' : '1px'};
+      opacity:1;
+    `;
     document.body.appendChild(el);
-    const dx = (Math.random()-0.5)*400;
-    const dy = -100 - Math.random()*300;
+    const angle  = (Math.random() * 220 - 110) * (Math.PI / 180);
+    const speed  = 180 + Math.random() * 320;
+    const dx     = Math.sin(angle) * speed;
+    const dy     = -Math.abs(Math.cos(angle)) * speed;
+    const rot    = (Math.random() - 0.5) * 900;
     el.animate([
-      {transform:'translate(0,0)', opacity:1},
-      {transform:`translate(${dx}px,${dy+400}px) rotate(${Math.random()*720}deg)`, opacity:0}
-    ], {duration:1200+Math.random()*600, easing:'cubic-bezier(.2,.8,.2,1)'});
-    setTimeout(()=>el.remove(), 1800);
+      { transform: `translate(0,0) rotate(0deg)`, opacity: 1 },
+      { transform: `translate(${dx}px,${dy * 0.4}px) rotate(${rot*0.3}deg)`, opacity: 1, offset: 0.3 },
+      { transform: `translate(${dx*1.1}px,${dy + window.innerHeight * 0.6}px) rotate(${rot}deg)`, opacity: 0 }
+    ], { duration: 1000 + Math.random() * 800, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
+    setTimeout(() => el.remove(), 1900);
   }
 }
-const boardEl = document.getElementById('board');
-const statusEl = document.getElementById('status');
-const scoreEl = document.getElementById('score');
-const modeSel = document.getElementById('mode');
-const difficultySel = document.getElementById('difficulty');
-let board = Array(9).fill(null);
-let current = 'X';
-let gameOver = false;
-let scores = { X:0, O:0, D:0 };
-let difficulty = 'hard';
 
-function updateDifficultyVisibility(){
-  difficultySel.parentElement.style.display = (modeSel.value === 'ai') ? 'block' : 'none';
+/* Ripple on cell tap */
+function addRipple(cellEl, player) {
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple';
+  const color = player === 'X' ? 'rgba(251,191,36,.4)' : 'rgba(52,211,153,.4)';
+  ripple.style.cssText = `width:200%;padding-top:200%;top:-50%;left:-50%;background:${color};`;
+  cellEl.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 500);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Win Banner
+═══════════════════════════════════════════════════════ */
+const winBanner     = document.getElementById('winBanner');
+const winBannerText = document.getElementById('winBannerText');
+const winBannerEmoji= document.getElementById('winBannerEmoji');
+
+function showBanner(result) {
+  if (result.player === 'D') {
+    winBannerEmoji.textContent = '🤝';
+    winBannerText.textContent  = t().bannerDraw;
+  } else {
+    winBannerEmoji.textContent = result.player === 'X' ? '🌟' : '🤖';
+    winBannerText.textContent  = t().bannerWin(result.player);
+  }
+  document.getElementById('winBannerClose').textContent = t().nextBtn;
+  winBanner.classList.add('show');
+}
+
+document.getElementById('winBannerClose').addEventListener('click', () => {
+  soundButtonClick();
+  winBanner.classList.remove('show');
+  document.getElementById('reset').click();
+});
+
+/* ═══════════════════════════════════════════════════════
+   Game state
+═══════════════════════════════════════════════════════ */
+const boardEl             = document.getElementById('board');
+const scoreEl             = document.getElementById('score');
+const modeSel             = document.getElementById('mode');
+const difficultyContainer = document.getElementById('difficultyContainer');
+const difficultySel       = document.getElementById('difficulty');
+
+let board      = Array(9).fill(null);
+let current    = 'X';
+let gameOver   = false;
+let scores     = { X:0, O:0, D:0 };
+let difficulty = difficultySel.value;
+
+function updateDifficultyVisibility() {
+  difficultyContainer.style.display = (modeSel.value === 'ai') ? 'block' : 'none';
 }
 
 const wins = [
@@ -150,11 +616,17 @@ const wins = [
   [0,4,8],[2,4,6]
 ];
 
-function render() {
+function render(newRound = false) {
   boardEl.innerHTML = '';
-  board.forEach((v,i) => {
+  if (newRound) {
+    boardEl.classList.remove('newround');
+    void boardEl.offsetWidth;
+    boardEl.classList.add('newround');
+    setTimeout(() => boardEl.classList.remove('newround'), 400);
+  }
+  board.forEach((v, i) => {
     const c = document.createElement('div');
-    c.className = 'cell' + (v ? ' '+v.toLowerCase() : '');
+    c.className = 'cell' + (v ? ' ' + v.toLowerCase() : '');
     c.textContent = v || '';
     c.addEventListener('click', () => move(i));
     boardEl.appendChild(c);
@@ -162,10 +634,10 @@ function render() {
 }
 
 function checkWinner(b) {
-  for (const [a,bb,cc] of wins) {
-    if (b[a] && b[a]===b[bb] && b[a]===b[cc]) return {player:b[a], line:[a,bb,cc]};
+  for (const [a, bb, cc] of wins) {
+    if (b[a] && b[a] === b[bb] && b[a] === b[cc]) return { player: b[a], line: [a, bb, cc] };
   }
-  if (b.every(x=>x)) return {player:'D', line:[]};
+  if (b.every(x => x)) return { player: 'D', line: [] };
   return null;
 }
 
@@ -173,68 +645,78 @@ function move(i) {
   if (gameOver || board[i]) return;
   board[i] = current;
   soundClick();
-  // pop animation on the cell
+
+  // Render immediately so we can grab the cell for effects
+  render();
   const cells = boardEl.querySelectorAll('.cell');
   cells[i].classList.add('pop');
-  setTimeout(()=>cells[i].classList.remove('pop'), 300);
+  addRipple(cells[i], current);
+  setTimeout(() => cells[i].classList.remove('pop'), 320);
+
   const res = checkWinner(board);
   if (res) {
     gameOver = true;
-    if (res.player === 'D') { statusEl.textContent = 'تعادل!'; scores.D++; soundDraw(); boardEl.classList.add('shake'); setTimeout(()=>boardEl.classList.remove('shake'),400); }
-    else { statusEl.textContent = 'فاز '+res.player+'!'; scores[res.player]++; highlight(res.line); soundWin(); confettiBurst(); }
+    if (res.player === 'D') {
+      setStatus(t().draw, null);
+      scores.D++;
+      soundDraw();
+      boardEl.classList.add('shake');
+      setTimeout(() => boardEl.classList.remove('shake'), 450);
+    } else {
+      setStatus(t().win(res.player), null);
+      scores[res.player]++;
+      highlight(res.line);
+      soundWin();
+      confettiBurst();
+    }
     updateScore();
+    setTimeout(() => showBanner(res), 900);
     return;
   }
+
   current = current === 'X' ? 'O' : 'X';
-  statusEl.textContent = 'دور '+current;
-  render();
+  setStatus(t().turn(current), current);
+
   if (modeSel.value === 'ai' && current === 'O' && !gameOver) {
-    setTimeout(()=>{ soundAi(); aiMove(); }, 350);
+    setTimeout(() => { soundAi(); aiMove(); }, 400);
   }
 }
 
 function highlight(line) {
   render();
-  line.forEach(i => {
-    const cells = boardEl.querySelectorAll('.cell');
-    cells[i].classList.add('win');
-  });
+  const cells = boardEl.querySelectorAll('.cell');
+  line.forEach(i => cells[i].classList.add('win'));
+}
+
+/* ═══════════════════════════════════════════════════════
+   AI
+═══════════════════════════════════════════════════════ */
+function randomMove() {
+  const empties = [];
+  for (let i = 0; i < 9; i++) if (!board[i]) empties.push(i);
+  if (empties.length) move(empties[Math.floor(Math.random() * empties.length)]);
+}
+
+function bestMove() {
+  let best = -Infinity, idx = -1;
+  for (let i = 0; i < 9; i++) {
+    if (!board[i]) {
+      board[i] = 'O';
+      const s = minimax(board, 0, false);
+      board[i] = null;
+      if (s > best) { best = s; idx = i; }
+    }
+  }
+  if (idx !== -1) move(idx);
 }
 
 function aiMove() {
   if (gameOver) return;
-
-  if (difficulty === 'easy') {
-    // Easy: completely random move
-    const empties = [];
-    for (let i=0;i<9;i++) if (!board[i]) empties.push(i);
-    if (empties.length) move(empties[Math.floor(Math.random()*empties.length)]);
-    return;
-  }
-
-  if (difficulty === 'medium') {
-    // Medium: 50% random, 50% smart
-    const empties = [];
-    for (let i=0;i<9;i++) if (!board[i]) empties.push(i);
-    if (empties.length) {
-      if (Math.random() < 0.5) {
-        move(empties[Math.floor(Math.random()*empties.length)]);
-        return;
-      }
-    }
-  }
-
-  // Hard: Minimax (perfect play)
-  let best = -Infinity, idx = -1;
-  for (let i=0;i<9;i++){
-    if (!board[i]){
-      board[i]='O';
-      const s = minimax(board, 0, false);
-      board[i]=null;
-      if (s > best){ best=s; idx=i; }
-    }
-  }
-  if (idx !== -1) move(idx);
+  if (difficulty === 'veryeasy') { randomMove(); return; }
+  if (difficulty === 'easy')     { if (Math.random() < 0.8) { randomMove(); return; } bestMove(); return; }
+  if (difficulty === 'medium')   { if (Math.random() < 0.5) { randomMove(); return; } bestMove(); return; }
+  if (difficulty === 'hard')     { if (Math.random() < 0.2) { randomMove(); return; } bestMove(); return; }
+  bestMove();
 }
 
 function minimax(b, depth, isMax) {
@@ -246,37 +728,48 @@ function minimax(b, depth, isMax) {
   }
   if (isMax) {
     let best = -Infinity;
-    for (let i=0;i<9;i++) if(!b[i]){ b[i]='O'; best=Math.max(best,minimax(b,depth+1,false)); b[i]=null; }
+    for (let i = 0; i < 9; i++) if (!b[i]) { b[i] = 'O'; best = Math.max(best, minimax(b, depth+1, false)); b[i] = null; }
     return best;
   } else {
     let best = Infinity;
-    for (let i=0;i<9;i++) if(!b[i]){ b[i]='X'; best=Math.min(best,minimax(b,depth+1,true)); b[i]=null; }
+    for (let i = 0; i < 9; i++) if (!b[i]) { b[i] = 'X'; best = Math.min(best, minimax(b, depth+1, true)); b[i] = null; }
     return best;
   }
 }
 
 function updateScore() {
-  scoreEl.textContent = `X: ${scores.X}  |  O: ${scores.O}  |  تعادل: ${scores.D}`;
+  scoreEl.textContent = t().score(scores.X, scores.O, scores.D);
 }
 
+/* ═══════════════════════════════════════════════════════
+   Controls
+═══════════════════════════════════════════════════════ */
 document.getElementById('reset').addEventListener('click', () => {
-  board = Array(9).fill(null);
-  current = 'X';
+  soundButtonClick();
+  board    = Array(9).fill(null);
+  current  = 'X';
   gameOver = false;
-  statusEl.textContent = 'دور X';
-  render();
+  winBanner.classList.remove('show');
+  setStatus(t().turn('X'), 'X');
+  render(true);
 });
 
 document.getElementById('resetAll').addEventListener('click', () => {
-  scores = {X:0,O:0,D:0};
+  soundButtonClick();
+  scores = { X:0, O:0, D:0 };
   updateScore();
   document.getElementById('reset').click();
 });
 
 modeSel.addEventListener('change', updateDifficultyVisibility);
-updateDifficultyVisibility();
+difficultySel.addEventListener('change', () => { difficulty = difficultySel.value; });
 
-render();
+/* ═══════════════════════════════════════════════════════
+   Init
+═══════════════════════════════════════════════════════ */
+updateDifficultyVisibility();
+applyLang();
+render(true);
 </script>
 </body>
 </html>
